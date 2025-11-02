@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Test de prise de décision rapide</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: white;
+        transition: background-color 0.5s ease;
+    }
+
+    .container {
+        max-width: 700px;
+        margin: auto;
+        padding: 20px;
+        text-align: center;
+    }
+
+    /* --- PAGE INTRO --- */
+    #intro {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        text-align: center;
+    }
+
+    #intro p {
+        text-align: justify;
+    }
+
+    /* --- PAGES CENTRÉES --- */
+    #namePage,
+    #readyPage,
+    #questionPage,
+    #transitionPage {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        text-align: center;
+    }
+
+    /* --- Boutons --- */
+    button, .option-btn {
+        background-color: #d3d3d3;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: 0.2s;
+    }
+    button:hover, .option-btn:hover {
+        background-color: #c0c0c0;
+    }
+
+    button {
+        padding: 12px 24px;
+        font-size: 16px;
+        margin: 10px 0;
+    }
+
+    .option-btn {
+        display: block;
+        width: 80%;
+        max-width: 300px;
+        padding: 12px;
+        font-size: 16px;
+        margin: 8px auto;
+    }
+
+    @media (max-width: 600px) {
+        .option-btn {
+            width: 90%;
+        }
+    }
+
+    input {
+        padding: 10px;
+        font-size: 16px;
+        border-radius: 5px;
+        border: 1px solid #ccc;
+        width: 80%;
+        max-width: 300px;
+    }
+
+    .hidden {
+        display: none !important;
+    }
+
+    .countdown {
+        font-size: 24px;
+        margin-top: 20px;
+    }
+
+    .question-number {
+        font-weight: bold;
+    }
+
+    .question-text {
+        color: gray;
+        margin: 30px 0 20px 0;
+    }
+
+    .result-title {
+        font-weight: bold;
+        font-size: 20px;
+        margin-bottom: 20px;
+    }
+
+    .red-bold {
+        color: red;
+        font-weight: bold;
+    }
+
+    .left-align {
+        text-align: left;
+        margin: auto;
+        max-width: 700px;
+    }
+</style>
+</head>
+<body>
+
+<!-- PAGE INTRO -->
+<div class="container" id="intro">
+    <h2><b>Bienvenue dans ce test de prise de décision rapide !</b></h2>
+    <p>
+        Dans le cadre de mon travail de maturité (TM), j'étudie le lien entre la pratique de patinage artistique et la rapidité de prise de décision. 
+        Tu n'as pas besoin d'être patineur.euse pour répondre à ce test.<br><br>
+        Cette expérience comporte 5 questions simples à choix multiples. Pour chaque question, tu dois choisir une réponse le plus rapidement possible.<br><br>
+        Ton temps de prise de décision sera mesuré pour chaque question.<br><br>
+        À la fin, il y aura une page affichant tes temps pour chaque question. Je te prie de faire une capture d'écran et de m'envoyer le résultat de ton test. 
+        Tes temps seront anonymes dans mon TM, il n'y a que moi qui saurai qui a fait quel temps.<br><br>
+        Lis bien chaque consigne et sois attentif.ve. Clique sur le bouton ci-dessous pour commencer.
+    </p>
+    <button onclick="goToPage('intro', 'namePage')">Commencer le test</button>
+</div>
+
+<!-- PAGE NOM -->
+<div class="container hidden" id="namePage">
+    <h2>Quel est ton prénom ?</h2>
+    <input type="text" id="prenom" placeholder="Entre ton prénom ici">
+    <br><br>
+    <button onclick="startTest()">Valider et démarrer</button>
+</div>
+
+<!-- PAGE "C’EST PARTI" -->
+<div class="container hidden" id="readyPage">
+    <h2>C’est parti !</h2>
+</div>
+
+<!-- PAGE QUESTION -->
+<div class="container hidden" id="questionPage"></div>
+
+<!-- PAGE TRANSITION -->
+<div class="container hidden" id="transitionPage">
+    <h2><b>Prochaine question</b></h2>
+    <div class="countdown" id="countdown">3</div>
+</div>
+
+<!-- PAGE RESULTATS -->
+<div class="container hidden" id="resultPage">
+    <h2 class="result-title">Résultats du test</h2>
+    <div id="results" class="left-align"></div>
+    <br><br>
+    <p class="red-bold left-align">N'OUBLIE PAS DE M'ENVOYER UNE CAPTURE D'ÉCRAN DE TES RÉSULTATS !!</p>
+    <p class="left-align" id="merciText"></p>
+</div>
+
+<script>
+const questions = [
+    {text: "Tu préfères…", options: ["Le matin", "L'après-midi", "Le soir", "La nuit"], color: "#f8e8e8"},
+    {text: "Tu préfères…", options: ["La montagne", "La plage", "La ville", "La campagne"], color: "#e8f8f0"},
+    {text: "Tu préfères…", options: ["Les pâtes", "La pizza", "Les sushis", "La salade"], color: "#e8f0f8"},
+    {text: "Tu préfères…", options: ["Le sport", "Le shopping", "Lire", "Aller au cinéma"], color: "#f8f4e8"},
+    {text: "Tu préfères…", options: ["La pop", "Le rap", "L'électro", "Le classique"], color: "#f2e8f8"}
+];
+
+let currentQuestion = 0;
+let startTime;
+let times = [];
+let participant = "";
+
+/* ---- Navigation ---- */
+function goToPage(currentId, nextId) {
+    document.getElementById(currentId).classList.add("hidden");
+    document.getElementById(nextId).classList.remove("hidden");
+}
+
+/* ---- Étape prénom ---- */
+function startTest() {
+    participant = document.getElementById("prenom").value.trim();
+    if (participant === "") {
+        alert("Merci d'entrer ton prénom !");
+        return;
+    }
+
+    goToPage("namePage", "readyPage");
+    document.body.style.backgroundColor = questions[0].color;
+
+    setTimeout(() => {
+        goToPage("readyPage", "questionPage");
+        showQuestion();
+    }, 3000);
+}
+
+/* ---- Afficher une question ---- */
+function showQuestion() {
+    const q = questions[currentQuestion];
+    const qPage = document.getElementById("questionPage");
+    document.body.style.backgroundColor = q.color;
+    qPage.innerHTML = `
+        <h2 class="question-number">Question ${currentQuestion + 1} sur 5</h2>
+        <div class="question-text">${q.text}</div>
+        ${q.options.map((opt, i) => `<button class="option-btn" onclick="answer(${i})">${opt}</button>`).join('')}
+    `;
+    startTime = performance.now();
+}
+
+/* ---- Répondre ---- */
+function answer(i) {
+    const endTime = performance.now();
+    const reactionTime = (endTime - startTime).toFixed(3);
+    times.push(Number(reactionTime));
+
+    document.getElementById("questionPage").classList.add("hidden");
+
+    if (currentQuestion < questions.length - 1) {
+        showTransition();
+    } else {
+        showResults();
+    }
+}
+
+/* ---- Transition ---- */
+function showTransition() {
+    currentQuestion++;
+    document.body.style.backgroundColor = questions[currentQuestion].color;
+    const transPage = document.getElementById("transitionPage");
+    transPage.classList.remove("hidden");
+
+    let count = 3;
+    document.getElementById("countdown").innerText = count;
+    const interval = setInterval(() => {
+        count--;
+        document.getElementById("countdown").innerText = count;
+        if (count === 0) {
+            clearInterval(interval);
+            transPage.classList.add("hidden");
+            document.getElementById("questionPage").classList.remove("hidden");
+            showQuestion();
+        }
+    }, 1000);
+}
+
+/* ---- Résultats ---- */
+function showResults() {
+    document.body.style.backgroundColor = "white";
+    goToPage("questionPage", "resultPage");
+
+    const resultsDiv = document.getElementById("results");
+    let html = "";
+    let total = 0;
+    times.forEach((t, i) => {
+        html += `<p>Question ${i + 1} : ${t} ms</p>`;
+        total += t;
+    });
+    const avg = (total / times.length).toFixed(3);
+    html += `<p><b>Temps moyen :</b> ${avg} ms</p>`;
+    resultsDiv.innerHTML = html;
+
+    document.getElementById("merciText").innerHTML =
+        `Merci énormément <i>${participant}</i> de ta participation, cela m'est d'une grande aide. 😊<br>Daria`;
+}
+</script>
+
+</body>
+</html>
